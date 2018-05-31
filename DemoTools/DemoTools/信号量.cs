@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,7 +24,7 @@ namespace DemoTools
             semLim.Release();
         }
 
-        static void Main(string[] args)
+        static void Main3(string[] args)
         {
             Console.WriteLine("主线程启动");
             //Task.Run启动一个线程
@@ -41,6 +38,27 @@ namespace DemoTools
             Thread.Sleep(300);
             task.Wait();
             Console.WriteLine("主线程结束");
+        }
+
+        static void Main(string[] args)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                new Thread(Run1).Start();
+            }
+            for (int i = 0; i < 5; i++)
+            {
+                Task.Run(() => { Run2(); });
+            }
+            Console.Read();
+        }
+        static void Run1()
+        {
+            Console.WriteLine("Thread Id =" + Thread.CurrentThread.ManagedThreadId);
+        }
+        static void Run2()
+        {
+            Console.WriteLine("Task调用的Thread Id =" + Thread.CurrentThread.ManagedThreadId);
         }
     }
 }
