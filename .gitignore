@@ -329,5 +329,5 @@ ASALocalRun/
 .mfractor/
 */bin/
 */obj
-/CFGDC.suo
+*.suo
 /CFGDC.suo

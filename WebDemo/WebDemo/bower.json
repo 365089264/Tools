@@ -1,0 +1,21 @@
+{
+  "name": "WebDemo",
+  "homepage": "https://github.com/365089264/Tools",
+  "authors": [
+    "wss <wss@qq.com>"
+  ],
+  "description": "0.0.0",
+  "main": "",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "v1.6.4-build.5317+sha.0c3620b"
+  }
+}
