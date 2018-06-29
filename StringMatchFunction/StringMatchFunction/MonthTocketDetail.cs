@@ -17,17 +17,58 @@ namespace StringMatchFunction
 {
     class MonthTocketDetail
     {
+        static bool isExportAllFenduan=false;
+        static string feemonth = "201805";
         static void Main(string[] args)
         {
-            
+            if (DateTime.Now.Year != 2018 && DateTime.Now.Month != 6) {
+                return;
+            }
+            Console.Write("输入月份（yyyymm）：");
+            var mon = Console.ReadLine();
+            if (!string.IsNullOrEmpty(mon) && mon.Length==6)
+            {
+                feemonth = mon;
+            }
+            else {
+                return;
+            }
+            List<SheetMap> list = new List<SheetMap>();
+            Console.Write("合计比较是否导出（y/n）：");
+            var str=Console.ReadLine();
+            if (str.ToLower() == "y")
+            {
+                list.Add(new SheetMap() { sheetName = "合计比较", isExport = true });
+            }
+            Console.Write("明细比例（y/n）：");
+            str = Console.ReadLine();
+            if (str.ToLower() == "y")
+            {
+                list.Add(new SheetMap() { sheetName = "明细比例", isExport = true });
+            }
+            Console.WriteLine("分段详细 a代表全部分段信息，b代表不一致分段信息，n代表不导出分段信息");
+            Console.Write("分段详细（a/b/n）：");
+            str = Console.ReadLine();
+            if (str.ToLower() == "a" || str.ToLower() == "b")
+            {
+                if (str.ToLower() == "a") isExportAllFenduan = true;
+                list.Add(new SheetMap() { sheetName = "分段详细", isExport = true });
+            }
+            Console.Write("结算系统没有的影片（y/n）：");
+            str = Console.ReadLine();
+            if (str.ToLower() == "y")
+            {
+                list.Add(new SheetMap() { sheetName = "结算系统没有的影片", isExport = true });
+            }
             RegisterLicense();
             var workbook = new Workbook();
-            var list = GetSheetMap();
+            //var list = GetSheetMap();
             int sheetIndex=0;
             foreach (var item in list)
             {
                 DataTable dt = new DataTable();
-                if(!item.isExport)continue;
+                if (!item.isExport) continue;
+                Console.WriteLine(item.sheetName + "开始导出.......");
                 switch (item.sheetName) {
                     case "合计比较":
                         dt = GetTicketTotal();
@@ -66,23 +107,26 @@ namespace StringMatchFunction
                         cells[1 + i, k].PutValue(dt.Rows[i][k].ToString());
                     }
                 }
+                Console.WriteLine(item.sheetName+"导出成功！");
                 sheetIndex++;
             }
-            string fileName = "2018-05月结算分段明细.xls";
+            string fileName = feemonth+"月结算分段明细.xls";
             workbook.Save(fileName);
-            Console.ReadLine();
+            Console.WriteLine("导出excel完成，结束！");
         }
          public static DataTable GetTicketFenduanDetail()
          {
-             string sqlAllFilmNo = "select de.THEATRECODE,de.filmno,de.ROWINDEX from feemonthuseruploaddetails de order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO";
-             string sqlTicketSubDetail = @"select  de.THEATRECODE,de.THEATRENAME,de.ROWINDEX,de.FILMNO,de.FILMNAME,de.SETTLEMENTID,seq.filmid,iss.PLAYSTARTTIME,iss.PLAYENDTIME,iss.ratiovalue/100 as ratiovalue,vi.FILMVERSIONNAME
+             string sqlAllFilmNo = "select de.THEATRECODE,de.filmno,de.ROWINDEX from feemonthuseruploaddetails de where de.FEEMONTH='"+feemonth+"' order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO";
+             string sqlTicketSubDetail = @"select  de.THEATRECODE as 影院编码,de.THEATRENAME as 影院名称,de.ROWINDEX as 序号,de.FILMNO,de.FILMNAME as 影片编码,de.SETTLEMENTID as 结算单位ID,seq.filmid as 影片ID,iss.PLAYSTARTTIME as 分段起始时间,iss.PLAYENDTIME as分段结束时间,iss.ratiovalue/100 as ratiovalue as 系统分账比例,vi.FILMVERSIONNAME as 版本信息
 ,(case when iss.ratiotype=0 then '自购' else '租赁' end) as 比例类型
 ,(case when exists(select iss_hall.FILMISSUEID from FILMISSUE_HALL iss_hall where iss.FILMISSUEID=iss_hall.FILMISSUEID and iss_hall.deleted=0) then '是' else '否' end ) as 是否特殊比例
 from feemonthuseruploaddetails de
 INNER JOIN FILMVERSION vi on de.FILMVERSIONTYPE=vi.FILMVERSIONTYPE
 inner join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
 inner join FILMISSUE iss on iss.SETTLEMENTID=de.SETTLEMENTID and iss.filmid=seq.filmid and iss.filmversiontype=seq.FILMVERSIONTYPE AND iss.ratiotype=de.ratiotype
-where   ";
+ where   ";
+             sqlTicketSubDetail += " de.FEEMONTH='" + feemonth + "' and ";
+             if (!isExportAllFenduan) sqlTicketSubDetail += " (de.sysfzbl is null or de.sysfzbl<>de.fzbl) and";
              string sqlWhere = @" and  iss.deleted=0 and
  ((iss.PLAYSTARTTIME<=de.STARTDATE and iss.PLAYENDTIME>=de.STARTDATE) 
 or  (iss.PLAYSTARTTIME<=de.ENDDATE and iss.PLAYENDTIME>=de.STARTDATE)
@@ -121,8 +165,8 @@ order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO,seq.filmid,iss.PLAYSTARTTIME
              string sql = @"select distinct des.theatrename as 影院名称,des.theatrecode as 影院编码,de.totalpf as 总票房,de.jpf as 净票房,de.fzpk as 分账片款,de.sysfzpk as 系统分账片款,de.ismatchfzpk as 分账金额差值,de.ismatchfzbl as 是否一致,b.SETTLENAME  as 结算单位名称
 from feemonthuseruploadtotal de 
 inner join  feemonthuseruploaddetails des on de.SETTLEMENTID=des.SETTLEMENTID
-inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID
-order by des.THEATRECODE";
+inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID";
+sql+=" where de.FEEMONTH='"+feemonth+"' order by des.THEATRECODE";
              DataTable dt = GetDataTableBySql2(sql);
              return dt;
          }
@@ -135,8 +179,8 @@ order by des.THEATRECODE";
 from feemonthuseruploaddetails de 
 inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID
 left join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
-left join V_feemonthuploadratiovalue v on de.THEATRECODE=v.THEATRECODE and de.ROWINDEX=v.ROWINDEX and de.FORMATFILMNO=v.FORMATFILMNO 
-order by de.THEATRECODE,de.ROWINDEX,de.FILMNAME";
+left join V_feemonthuploadratiovalue v on de.THEATRECODE=v.THEATRECODE and de.ROWINDEX=v.ROWINDEX and de.FORMATFILMNO=v.FORMATFILMNO ";
+sql+="where de.FEEMONTH='"+feemonth+"' order by de.THEATRECODE,de.ROWINDEX,de.FILMNAME";
              DataTable dt = GetDataTableBySql2(sql);
              return dt;
          }
@@ -147,7 +191,8 @@ from feemonthuseruploaddetails de
 inner join V_FILMFORMATE vv on vv.filmcode=de.FORMATFILMNO
 inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID
 left join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
-where seq.filmid is  null";
+ where seq.filmid is  null  ";
+             sql += " and de.FEEMONTH='" + feemonth + "'";
              DataTable dt = GetDataTableBySql2(sql);
              return dt;
          }
