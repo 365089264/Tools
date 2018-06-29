@@ -11,7 +11,7 @@ namespace StringMatchFunction
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Maina(string[] args)
         {
             //string filepath = "EQ_CinemaInfo.txt";
             //string json = GetFileJson(filepath);
