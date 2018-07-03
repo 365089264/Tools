@@ -117,6 +117,9 @@ namespace StringMatchFunction
          public static DataTable GetTicketFenduanDetail()
          {
              string sqlAllFilmNo = "select de.THEATRECODE,de.filmno,de.ROWINDEX from feemonthuseruploaddetails de where de.FEEMONTH='"+feemonth+"' order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO";
+             if (!isExportAllFenduan) {
+                 sqlAllFilmNo = "select de.THEATRECODE,de.filmno,de.ROWINDEX from feemonthuseruploaddetails de where (de.sysfzbl is null or de.sysfzbl<>de.fzbl) and de.FEEMONTH='" + feemonth + "' order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO";
+             }
              string sqlTicketSubDetail = @"select  de.THEATRECODE as 影院编码,de.THEATRENAME as 影院名称,de.ROWINDEX as 序号,de.FILMNO,de.FILMNAME as 影片编码,de.SETTLEMENTID as 结算单位ID,seq.filmid as 影片ID,iss.PLAYSTARTTIME as 分段起始时间,iss.PLAYENDTIME as 分段结束时间,iss.ratiovalue/100  as 系统分账比例,vi.FILMVERSIONNAME as 版本信息
 ,(case when iss.ratiotype=0 then '自购' else '租赁' end) as 比例类型
 ,(case when exists(select iss_hall.FILMISSUEID from FILMISSUE_HALL iss_hall where iss.FILMISSUEID=iss_hall.FILMISSUEID and iss_hall.deleted=0) then '是' else '否' end ) as 是否特殊比例
