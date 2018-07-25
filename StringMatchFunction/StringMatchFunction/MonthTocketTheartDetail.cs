@@ -15,7 +15,7 @@ using Aspose.Cells;
 
 namespace StringMatchFunction
 {
-    class MonthTocketDetail
+    class MonthTocketTheartDetail
     {
         static bool isExportAllFenduan=false;
         static string feemonth = "201806";
@@ -124,6 +124,7 @@ namespace StringMatchFunction
 ,(case when iss.ratiotype=0 then '自购' else '租赁' end) as 比例类型
 ,(case when exists(select iss_hall.FILMISSUEID from FILMISSUE_HALL iss_hall where iss.FILMISSUEID=iss_hall.FILMISSUEID and iss_hall.deleted=0) then '是' else '否' end ) as 是否特殊比例
 from feemonthuseruploaddetails de
+inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode=1
 INNER JOIN FILMVERSION vi on de.FILMVERSIONTYPE=vi.FILMVERSIONTYPE
 inner join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
 inner join FILMISSUE iss on iss.SETTLEMENTID=de.SETTLEMENTID and iss.filmid=seq.filmid and iss.filmversiontype=seq.FILMVERSIONTYPE AND iss.ratiotype=de.ratiotype
@@ -168,7 +169,7 @@ order by de.THEATRECODE,de.ROWINDEX,de.FORMATFILMNO,seq.filmid,iss.PLAYSTARTTIME
              string sql = @"select distinct des.theatrename as 影院名称,des.theatrecode as 影院编码,de.totalpf as 总票房,de.jpf as 净票房,de.fzpk as 分账片款,de.sysfzpk as 系统分账片款,de.ismatchfzpk as 分账金额差值,de.ismatchfzbl as 是否一致,b.SETTLENAME  as 结算单位名称
 from feemonthuseruploadtotal de 
 inner join  feemonthuseruploaddetails des on de.SETTLEMENTID=des.SETTLEMENTID
-inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID";
+inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode=1";
 sql+=" where de.FEEMONTH='"+feemonth+"' order by des.THEATRECODE";
              DataTable dt = GetDataTableBySql2(sql);
              return dt;
