@@ -52,7 +52,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MonthTocketDetail.cs" />
+    <Compile Include="MonthTicketCinemaDetail.cs" />
+    <Compile Include="MonthTicketTheartDetail.cs" />
+    <Compile Include="OracleDBHelper.cs" />
     <Compile Include="Program2.cs" />
     <Compile Include="DataTableSerializer.cs" />
     <Compile Include="EQCin_Cinema.cs" />
