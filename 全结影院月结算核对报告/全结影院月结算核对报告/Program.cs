@@ -19,10 +19,11 @@ namespace 全结影院月结算核对报告
     class Program
     {
         static bool isExportAllFenduan = false;
-        static string feemonth = "201807";
+        static string feemonth = "";
         static string theatrecode = "";
         static void Main(string[] args)
         {
+            /*
             if (DateTime.Now.Year != 2018 && DateTime.Now.Month != 7)
             {
                 return;
@@ -77,6 +78,21 @@ namespace 全结影院月结算核对报告
             {
                 list.Add(new SheetMap() { sheetName = "结算系统没有的影片", isExport = true });
             }
+             * */
+            if (DateTime.Now.Month == 1)
+            {
+                feemonth = (DateTime.Now.Year - 1) + "12";
+            }
+            else
+            {
+                feemonth = DateTime.Now.Year + (DateTime.Now.Month - 1).ToString().PadLeft(2, '0');
+            }
+            List<SheetMap> list = new List<SheetMap>();
+            list.Add(new SheetMap() { sheetName = "合计比较", isExport = true });
+            list.Add(new SheetMap() { sheetName = "明细比例", isExport = true });
+            list.Add(new SheetMap() { sheetName = "分段详细", isExport = true });
+            list.Add(new SheetMap() { sheetName = "结算系统没有的影片", isExport = true });
+            list.Add(new SheetMap() { sheetName = "影片排次号信息", isExport = true });
             RegisterLicense();
             var workbook = new Workbook();
             //var list = GetSheetMap();
@@ -100,6 +116,10 @@ namespace 全结影院月结算核对报告
                     case "结算系统没有的影片":
                         dt = GetTicketNoFilm();
                         break;
+                    case "影片排次号信息":
+                        dt = GetSettleAllFilmNo();
+                        break;
+                        
 
                 }
                 if (dt.Rows.Count == 0) continue;
@@ -210,7 +230,7 @@ inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode=1";
 ,(case when v.ratioTotal is null  then 0 else v.ratioTotal end) as 不同的普通比例值数量
 ,(case when v.ratioTotal is null  then 0 else v.specialratioTotal end) as 不同的特殊比例值数量
 from feemonthuseruploaddetails de 
-inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID
+inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode=1
 left join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
 left join V_feemonthuploadratiovalue v on de.THEATRECODE=v.THEATRECODE and de.ROWINDEX=v.ROWINDEX and de.FORMATFILMNO=v.FORMATFILMNO ";
             sql += " where ";
@@ -234,6 +254,20 @@ left join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=
             DataTable dt = GetDataTableBySql2(sql);
             return dt;
         }
+
+        public static DataTable GetSettleAllFilmNo()
+        {
+            string sql = @"SELECT
+    filmcode 影片编码,
+    filmversionname 版本类型,
+    filmname 影片名称,
+    datasource 数据源
+FROM
+    v_filmformate
+    order by filmcode,datasource";
+            DataTable dt = GetDataTableBySql2(sql);
+            return dt;
+        }
         public static List<SheetMap> GetSheetMap()
         {
             List<SheetMap> list = new List<SheetMap>();
@@ -241,6 +275,7 @@ left join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=
             list.Add(new SheetMap() { sheetName = "明细比例", isExport = true });
             list.Add(new SheetMap() { sheetName = "分段详细", isExport = false });
             list.Add(new SheetMap() { sheetName = "结算系统没有的影片", isExport = true });
+            list.Add(new SheetMap() { sheetName = "影片排次号信息", isExport = true });
             return list;
         }
         public static string GetFileJson(string filepath)

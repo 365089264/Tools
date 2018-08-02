@@ -137,7 +137,7 @@ namespace StringMatchFunction
 ,(case when iss.ratiotype=0 then '自购' else '租赁' end) as 比例类型
 ,(case when exists(select iss_hall.FILMISSUEID from FILMISSUE_HALL iss_hall where iss.FILMISSUEID=iss_hall.FILMISSUEID and iss_hall.deleted=0) then '是' else '否' end ) as 是否特殊比例
 from feemonthuseruploaddetails de
-inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode=1
+inner join settlement b on de.SETTLEMENTID=b.SETTLEMENTID and b.settlemode>1
 INNER JOIN FILMVERSION vi on de.FILMVERSIONTYPE=vi.FILMVERSIONTYPE
 inner join FILMSEQ seq on de.FORMATFILMNO=seq.FILMSEQCODE and de.FILMVERSIONTYPE=seq.FILMVERSIONTYPE
 inner join FILMISSUE iss on iss.SETTLEMENTID=de.SETTLEMENTID and iss.filmid=seq.filmid and iss.filmversiontype=seq.FILMVERSIONTYPE AND iss.ratiotype=de.ratiotype
