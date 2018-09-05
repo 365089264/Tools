@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "发行结算推送一览表对比", "ConsoleTestConn23Settle\发行结算推送一览表对比.csproj", "{F60CCFD9-3090-4676-A189-26472E804ACA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F60CCFD9-3090-4676-A189-26472E804ACA}.Debug|x86.ActiveCfg = Debug|x86
+		{F60CCFD9-3090-4676-A189-26472E804ACA}.Debug|x86.Build.0 = Debug|x86
+		{F60CCFD9-3090-4676-A189-26472E804ACA}.Release|x86.ActiveCfg = Release|x86
+		{F60CCFD9-3090-4676-A189-26472E804ACA}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
