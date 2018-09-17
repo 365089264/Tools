@@ -5,6 +5,7 @@ using System.Text;
 using System.Data;
 using 补充结算一览表.model;
 using Oracle.ManagedDataAccess.Client;
+using Oracle.ManagedDataAccess.Types;
 
 
 namespace 补充结算一览表
@@ -13,7 +14,7 @@ namespace 补充结算一览表
     {
         static void Main(string[] args)
         {
-            ExecMergeDate();
+            //ExecMergeDate();
             //结算分段明细
             List<IssueStage> issStages = DataTableSerializer.ToList<IssueStage>(GetSettleIssueTagList());
             List<Settlement> settles = DataTableSerializer.ToList<Settlement>(GetSettleSettlementList());
@@ -31,32 +32,41 @@ where b.[一览表ID] is null";
             int specialValueHallNum = 0;
             int filmId = 0;
             int settleId = 0;
+            int issueStageId = 0;
             string insertFilmissueSql = "";
             string insertFilmissue_HallSql = "";
             for (int i = 0; i < dt.Rows.Count; i++)
             {
+                maxFilmIssueId += 1;
+                divideId = dt.Rows[i]["一览表ID"].ToString();
+                specialValueHallNum = Convert.ToInt32(dt.Rows[i]["特殊设备总数"]);
+                filmId = issStages.Where(re => re.issuestageguid == dt.Rows[i]["分段ID"].ToString()).FirstOrDefault().filmid;
+                settleId = settles.Where(re => re.settlementguid == dt.Rows[i]["结算单位ID"].ToString()).FirstOrDefault().settlementid;
+                issueStageId = issStages.Where(re => re.issuestageguid == dt.Rows[i]["分段ID"].ToString()).FirstOrDefault().issuestageid;
+
+                var isExists = OracleHelper.GetSingle("SELECT filmissueid FROM  filmissue where filmissueguid='" + divideId + "'");
+                if (isExists != null) {
+                    OracleHelper.ExecToSqlNonQuery("delete filmissue where filmissueid=" + isExists);
+                    OracleHelper.ExecToSqlNonQuery("delete filmissue_hall where filmissueid=" + isExists);
+                }
+
                 OracleParameter[] arrParas = new OracleParameter[16];
                 arrParas[0] = new OracleParameter(":FILMISSUEID", maxFilmIssueId);
                 arrParas[1] = new OracleParameter(":FILMISSUEGUID", divideId);
-                arrParas[2] = new OracleParameter(":ISSUESTAGEID", dt.Rows[i]["分段ID"].ToString());
+                arrParas[2] = new OracleParameter(":ISSUESTAGEID", issueStageId);
                 arrParas[3] = new OracleParameter(":FILMID", filmId);
                 arrParas[4] = new OracleParameter(":FILMVERSIONTYPE", dt.Rows[i]["VersionType"].ToString());
                 arrParas[5] = new OracleParameter(":SETTLEMENTGUID", dt.Rows[i]["结算单位ID"].ToString());
                 arrParas[6] = new OracleParameter(":SETTLEMENTID", settleId);
                 arrParas[7] = new OracleParameter(":FILMISSUETYPE", dt.Rows[i]["SettleType"].ToString());
-                arrParas[8] = new OracleParameter(":PLAYSTARTTIME", dt.Rows[i]["一览表开始时间"].ToString());
-                arrParas[9] = new OracleParameter(":PLAYENDTIME", dt.Rows[i]["一览表结束时间"].ToString());
+                arrParas[8] = new OracleParameter(":PLAYSTARTTIME", (OracleTimeStamp)Convert.ToDateTime(dt.Rows[i]["一览表开始时间"]));
+                arrParas[9] = new OracleParameter(":PLAYENDTIME", (OracleTimeStamp)Convert.ToDateTime(dt.Rows[i]["一览表结束时间"].ToString()));
                 arrParas[10] = new OracleParameter(":RATIOTYPE", dt.Rows[i]["SettleTypeNo"].ToString());
                 arrParas[11] = new OracleParameter(":RATIOVALUE", dt.Rows[i]["比例值"].ToString());
                 arrParas[12] = new OracleParameter(":PLAYREQUIRE", dt.Rows[i]["PLAYREQUIRE"].ToString());
                 arrParas[13] = new OracleParameter(":PRICEREQUIRE", dt.Rows[i]["PRICEREQUIRE"].ToString());
                 arrParas[14] = new OracleParameter(":OPERATORNAME", dt.Rows[i]["OPERATORNAME"].ToString());
                 arrParas[15] = new OracleParameter(":REMARK", dt.Rows[i]["REMARK"].ToString());
-                maxFilmIssueId += 1;
-                divideId = dt.Rows[i]["一览表ID"].ToString();
-                specialValueHallNum = Convert.ToInt32(dt.Rows[i]["特殊设备总数"]);
-                filmId = issStages.Where(re => re.issuestageguid == dt.Rows[i]["分段ID"].ToString()).FirstOrDefault().filmid;
-                settleId = settles.Where(re => re.settlementguid == dt.Rows[i]["结算单位ID"].ToString()).FirstOrDefault().settlementid;
                 insertFilmissueSql = @"INSERT INTO FILMISSUE(FILMISSUEID,FILMISSUEGUID,ISSUESTAGEID,FILMID,FILMVERSIONTYPE,SETTLEMENTGUID,SETTLEMENTID,FILMISSUETYPE,PLAYSTARTTIME,
 								PLAYENDTIME,RATIOTYPE,RATIOVALUE,PLAYREQUIRE,PRICEREQUIRE,OPERATORNAME,REMARK,CREATETIME,CREATEUSERID,DELETED,OPUSERID,OPFUNCTION,OPDATE,OPTYPE)VALUES(";
                 insertFilmissueSql += ":FILMISSUEID,";
@@ -81,24 +91,26 @@ where b.[一览表ID] is null";
                 if (specialValueHallNum > 0)
                 {
                     DataTable specialDt = SqlServerHelper.GetDataTableBySql(@" select SpecialHallID,EQ_TheaterCode,DeviceID from JS_SpecialValueHall where DelFlag=0 and DivideID='" + divideId + "'");
-                    maxFilmIssueHallId += 1;
-                    int hallid = halls.Where(re => re.hallcode == specialDt.Rows[i]["EQ_TheaterCode"].ToString()).FirstOrDefault().hallid; ;
-                    insertFilmissue_HallSql = "INSERT INTO FILMISSUE_HALL(FILMISSUE_HALLID,FILMISSUE_HALLGUID,HALLCODE,HALLID,FILMISSUEID,HALL_DEVICETYPEGUID,CREATETIME,CREATEUSERID,DELETED,OPUSERID,OPFUNCTION,OPDATE,OPTYPE)VALUES(";
-                    insertFilmissue_HallSql += ":FILMISSUE_HALLID,";
-                    insertFilmissue_HallSql += ":FILMISSUE_HALLGUID,";
-                    insertFilmissue_HallSql += ":HALLCODE,";
-                    insertFilmissue_HallSql += ":HALLID,";
-                    insertFilmissue_HallSql += ":FILMISSUEID,";
-                    insertFilmissue_HallSql += ":HALL_DEVICETYPEGUID,";
-                    insertFilmissue_HallSql += "sysdate,0,0,0,'sql',sysdate,'insert')";
-                    OracleParameter[] arrParasSpecial = new OracleParameter[6];
-                    arrParasSpecial[0] = new OracleParameter(":FILMISSUE_HALLID", maxFilmIssueHallId);
-                    arrParasSpecial[1] = new OracleParameter(":FILMISSUE_HALLGUID", specialDt.Rows[i]["SpecialHallID"].ToString());
-                    arrParasSpecial[2] = new OracleParameter(":HALLCODE", specialDt.Rows[i]["EQ_TheaterCode"].ToString());
-                    arrParasSpecial[3] = new OracleParameter(":HALLID", hallid);
-                    arrParasSpecial[4] = new OracleParameter(":FILMISSUEID", maxFilmIssueId);
-                    arrParasSpecial[5] = new OracleParameter(":HALL_DEVICETYPEGUID", specialDt.Rows[i]["DeviceID"].ToString());
-                    OracleHelper.ExecToSqlNonQuery(insertFilmissue_HallSql, arrParasSpecial);
+                    for (int x = 0; x < specialDt.Rows.Count; x++) {
+                        maxFilmIssueHallId += 1;
+                        int hallid = halls.Where(re => re.hallcode == specialDt.Rows[x]["EQ_TheaterCode"].ToString()).FirstOrDefault().hallid; ;
+                        insertFilmissue_HallSql = "INSERT INTO FILMISSUE_HALL(FILMISSUE_HALLID,FILMISSUE_HALLGUID,HALLCODE,HALLID,FILMISSUEID,HALL_DEVICETYPEGUID,CREATETIME,CREATEUSERID,DELETED,OPUSERID,OPFUNCTION,OPDATE,OPTYPE)VALUES(";
+                        insertFilmissue_HallSql += ":FILMISSUE_HALLID,";
+                        insertFilmissue_HallSql += ":FILMISSUE_HALLGUID,";
+                        insertFilmissue_HallSql += ":HALLCODE,";
+                        insertFilmissue_HallSql += ":HALLID,";
+                        insertFilmissue_HallSql += ":FILMISSUEID,";
+                        insertFilmissue_HallSql += ":HALL_DEVICETYPEGUID,";
+                        insertFilmissue_HallSql += "sysdate,0,0,0,'sql',sysdate,'insert')";
+                        OracleParameter[] arrParasSpecial = new OracleParameter[6];
+                        arrParasSpecial[0] = new OracleParameter(":FILMISSUE_HALLID", maxFilmIssueHallId);
+                        arrParasSpecial[1] = new OracleParameter(":FILMISSUE_HALLGUID", specialDt.Rows[x]["SpecialHallID"].ToString());
+                        arrParasSpecial[2] = new OracleParameter(":HALLCODE", specialDt.Rows[x]["EQ_TheaterCode"].ToString());
+                        arrParasSpecial[3] = new OracleParameter(":HALLID", hallid);
+                        arrParasSpecial[4] = new OracleParameter(":FILMISSUEID", maxFilmIssueId);
+                        arrParasSpecial[5] = new OracleParameter(":HALL_DEVICETYPEGUID", specialDt.Rows[x]["DeviceID"].ToString());
+                        OracleHelper.ExecToSqlNonQuery(insertFilmissue_HallSql, arrParasSpecial);
+                    }
                 }
 
 
@@ -109,12 +121,13 @@ where b.[一览表ID] is null";
 from [dbo].[A_FilmIssue_Issue] a
 right join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
 left join JS_IssuedList iss on b.[一览表ID]=iss.DivideID
-where a.[一览表ID] is null
+where a.[一览表ID] is null and (b.结算单位类型!='影院全结' or iss.DelFlag is not null or b.一览表开始时间>='2018-08-01')
 order by iss.DelFlag";
             dt = SqlServerHelper.GetDataTableBySql(sql);
             string sqlFilmIssueDelere = "";
             for (int i = 0; i < dt.Rows.Count; i++)
             {
+
                 sqlFilmIssueDelere = "update FILMISSUE set DELETED=1 where FILMISSUEID=" + dt.Rows[i]["FILMISSUEID"].ToString();
                 OracleHelper.ExecToSqlNonQuery(sqlFilmIssueDelere);
                 if (Convert.ToInt32(dt.Rows[i]["特殊设备总数"]) > 0)
@@ -209,7 +222,13 @@ left join JS_FilmVersion jfpv on iss.Versiontype=jfpv.Versiontype
 left join JS_SpecialValueHall fh on iss.DivideID=fh.DivideID  
 left join Publish_FilmPermitAdd pa on pb.filmno=pa.filmno and jfpv.VersionID=pa.VersionID
 where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and   iss.DelFlag=0 
-group by iss.DivideID ,iss.AuditState,iss.HasSend,iss.SettleID,sett.SettleName ,fi.filmname,jfpv.VersionName,pa.FilmNum,iss.RationValue,iss.SettleTypeNo,iss.StartTime,iss.EndTime
+group by iss.DivideID ,iss.AuditState,iss.HasSend,iss.SettleID,sett.SettleName ,tag.SectionID,iss.VersionType
+,iss.SettleType
+,iss.SettleTypeNo
+,iss.PlayRequire
+,iss.PriceRequire
+,iss.OperatorName
+,iss.Remark,fi.filmname,jfpv.VersionName,pa.FilmNum,iss.RationValue,iss.SettleTypeNo,iss.StartTime,iss.EndTime
 order by iss.DivideID", startdate, enddate));
 
             DataTable settleDetail = OracleHelper.GetDataTableBySql(string.Format(@"select iss.FILMISSUEID ,tag.ISSUESTAGEGUID 分段ID,to_char(iss.createtime,'yyyy-MM-dd') 创建日期,to_char(iss.OPDATE,'yyyy-MM-dd') 修改日期,iss.FILMISSUEGUID 一览表ID
@@ -235,7 +254,7 @@ order by iss.FILMISSUEID", startdate, enddate));
         public static DataTable GetSettleIssueTagList()
         {
 
-            DataTable dt = OracleHelper.GetDataTableBySql(@"SELECT tag.ISSUESTAGEGUID 
+            DataTable dt = OracleHelper.GetDataTableBySql(@"SELECT tag.ISSUESTAGEID,tag.ISSUESTAGEGUID 
 ,f.filmname ,fv.FILMVERSIONNAME ,seq.FILMSEQCODE ,tag.FILMID
 ,to_char(tag.playstarttime,'yyyy-MM-dd') playstarttime,to_char(tag.playendtime,'yyyy-MM-dd') playendtime
 FROM issuestage tag

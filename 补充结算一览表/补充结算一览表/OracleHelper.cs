@@ -21,6 +21,7 @@ namespace 补充结算一览表
             DataSet ds = new DataSet();
             OracleConnection con = new OracleConnection(conStr);
             OracleCommand cmd = new OracleCommand(sql, con);
+            cmd.CommandTimeout = 1800;
             OracleDataAdapter da = new OracleDataAdapter(cmd);
             da.Fill(ds);
             return ds.Tables[0];

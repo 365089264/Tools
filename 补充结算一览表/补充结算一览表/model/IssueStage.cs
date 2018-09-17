@@ -7,6 +7,7 @@ namespace 补充结算一览表.model
 {
     public class IssueStage
     {
+        public int issuestageid { get; set; }
         public string issuestageguid { get; set; }
         public string filmname { get; set; }
         public string filmversionname { get; set; }

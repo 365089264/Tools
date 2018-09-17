@@ -35,10 +35,11 @@ namespace 补充结算一览表
         public static void InsertDatatableIssue(DataTable dt, string tablename)
         {
             DataSet ds = new DataSet();
-            string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             using (SqlConnection con = new SqlConnection(conStr))
             {
                 SqlBulkCopy bulkCopy = new SqlBulkCopy(con);
+                bulkCopy.BatchSize = 100000;
+                bulkCopy.BulkCopyTimeout = 1800;
                 bulkCopy.DestinationTableName = tablename;
                 bulkCopy.BatchSize = dt.Rows.Count;
                 for (int i = 0; i < dt.Columns.Count; i++)
