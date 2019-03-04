@@ -15,6 +15,8 @@ namespace 补充结算一览表
         static void Main(string[] args)
         {
             //ExecMergeDate();
+            //Console.ReadLine();
+            //return;
             //结算分段明细
             List<IssueStage> issStages = DataTableSerializer.ToList<IssueStage>(GetSettleIssueTagList());
             List<Settlement> settles = DataTableSerializer.ToList<Settlement>(GetSettleSettlementList());
@@ -24,7 +26,7 @@ namespace 补充结算一览表
             string sql = @"select a.*
 from [dbo].[A_FilmIssue_Issue] a
 left join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
-where b.[一览表ID] is null";
+where b.[一览表ID] is null  and a.审核状态='通过'";
             var dt = SqlServerHelper.GetDataTableBySql(sql);
             int maxFilmIssueId = Convert.ToInt32(OracleHelper.GetSingle("SELECT max(filmissueid) FROM  filmissue"));
             int maxFilmIssueHallId = Convert.ToInt32(OracleHelper.GetSingle("SELECT max(filmissue_hallid) FROM  filmissue_hall"));
@@ -121,7 +123,7 @@ where b.[一览表ID] is null";
 from [dbo].[A_FilmIssue_Issue] a
 right join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
 left join JS_IssuedList iss on b.[一览表ID]=iss.DivideID
-where a.[一览表ID] is null and (b.结算单位类型!='影院全结' or iss.DelFlag is not null or b.一览表开始时间>='2018-08-01')
+where a.[一览表ID] is null and (b.结算单位类型!='影院全结' or iss.DelFlag is not null or b.一览表开始时间>='2018-08-01') and a.审核状态='通过'
 order by iss.DelFlag";
             dt = SqlServerHelper.GetDataTableBySql(sql);
             string sqlFilmIssueDelere = "";
@@ -141,7 +143,7 @@ order by iss.DelFlag";
             sql = @"select b.*,a.[特殊设备总数] as [特殊设备总数(发行)],a.[特殊设备总数(删除)],a.[特殊设备总数]+a.[特殊设备总数(删除)] -(select COUNT(1) from [dbo].JS_IssuedSendLog c  where c.DivideID=a.一览表ID ) as [特殊设备(发行未推送)],a.[审核状态] as [审核状态(发行)],a.[是否已经推送]
 from [dbo].[A_FilmIssue_Issue] a
 inner join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
-where a.[特殊设备总数]<>b.[特殊设备总数]";
+where a.[特殊设备总数]<>b.[特殊设备总数] and a.审核状态='通过'";
             dt = SqlServerHelper.GetDataTableBySql(sql);
             int filmIssueId = 0;
             for (int i = 0; i < dt.Rows.Count; i++)
@@ -192,7 +194,7 @@ where a.[特殊设备总数]<>b.[特殊设备总数]";
         public static void ExecMergeDate()
         {
             string startdate = "2018-07-01";
-            string enddate = "2018-12-31";
+            string enddate = "2018-12-07";
             SqlServerHelper.ExecSqlIssue("drop table A_FilmIssue_Issue");
             SqlServerHelper.ExecSqlIssue("truncate table A_FilmIssue_Settle");
             SqlServerHelper.ExecSqlIssue(string.Format(@"select iss.DivideID 一览表ID
@@ -221,7 +223,7 @@ inner join Film_FilmInfo fi on pb.filmno=fi.filmno
 left join JS_FilmVersion jfpv on iss.Versiontype=jfpv.Versiontype
 left join JS_SpecialValueHall fh on iss.DivideID=fh.DivideID  
 left join Publish_FilmPermitAdd pa on pb.filmno=pa.filmno and jfpv.VersionID=pa.VersionID
-where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and   iss.DelFlag=0 
+where tag.SectionID='78EDC8EC-0A89-4CC6-9F4D-30B20CC1F596'   and   iss.DelFlag=0 
 group by iss.DivideID ,iss.AuditState,iss.HasSend,iss.SettleID,sett.SettleName ,tag.SectionID,iss.VersionType
 ,iss.SettleType
 ,iss.SettleTypeNo
@@ -229,7 +231,7 @@ group by iss.DivideID ,iss.AuditState,iss.HasSend,iss.SettleID,sett.SettleName ,
 ,iss.PriceRequire
 ,iss.OperatorName
 ,iss.Remark,fi.filmname,jfpv.VersionName,pa.FilmNum,iss.RationValue,iss.SettleTypeNo,iss.StartTime,iss.EndTime
-order by iss.DivideID", startdate, enddate));
+order by iss.DivideID", enddate));//where tag.EndTime>='{0}'   and   iss.DelFlag=0 
 
             DataTable settleDetail = OracleHelper.GetDataTableBySql(string.Format(@"select iss.FILMISSUEID ,tag.ISSUESTAGEGUID 分段ID,to_char(iss.createtime,'yyyy-MM-dd') 创建日期,to_char(iss.OPDATE,'yyyy-MM-dd') 修改日期,iss.FILMISSUEGUID 一览表ID
 ,iss.SETTLEMENTGUID 结算单位ID
@@ -245,11 +247,11 @@ left join filmseq seq on iss.filmversiontype=seq.filmversiontype and  iss.filmid
 left join film f on  iss.filmid=f.filmid
 left join FILMVERSION fv on iss.FILMVERSIONTYPE=fv.FILMVERSIONTYPE
 left join FILMISSUE_HALL fh on iss.FILMISSUEID=fh.FILMISSUEID
-where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0 
+where tag.ISSUESTAGEGUID='78EDC8EC-0A89-4CC6-9F4D-30B20CC1F596' and tag.deleted=0  and iss.deleted=0 
 group by tag.ISSUESTAGEGUID,iss.createtime,iss.OPDATE,iss.FILMISSUEID,iss.FILMISSUEGUID ,iss.SETTLEMENTGUID,sett.SETTLENAME,sett.SETTLEMODE ,f.filmname,fv.FILMVERSIONNAME,seq.FILMSEQCODE,iss.RATIOVALUE,iss.RATIOTYPE,iss.PLAYSTARTTIME,iss.PLAYENDTIME
-order by iss.FILMISSUEID", startdate, enddate));
+order by iss.FILMISSUEID",  enddate));
             SqlServerHelper.InsertDatatableIssue(settleDetail, "A_FilmIssue_Settle");
-        }
+        }//where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0 
 
         public static DataTable GetSettleIssueTagList()
         {
