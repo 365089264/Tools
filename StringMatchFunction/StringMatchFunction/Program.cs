@@ -11,7 +11,7 @@ namespace StringMatchFunction
 {
     class Program
     {
-        static void Maina(string[] args)
+        static void Main(string[] args)
         {
             //string filepath = "EQ_CinemaInfo.txt";
             //string json = GetFileJson(filepath);
@@ -19,14 +19,26 @@ namespace StringMatchFunction
             //filepath = "EQCin_ForwardInfo.txt";
             //json = GetFileJson(filepath);
             //var eQCin_ForwardInfos = (List<EQCin_ForwardInfo>)JsonToObject(json, new List<EQCin_ForwardInfo>());
-            string sql1 = "select * from v_EQCin_CinemaFilter where  EQ_CinemaCode<>'' ";
-            string sql2 = "select * from v_EQCin_ForwardInfoFilter where [isDelete]=0 and [Match_CinemaCode] is   null   ";
+//            string sql1 = "  select EQ_CinemaCode, EQ_CinemaName,EQ_GroupName,EQ_AreaCode,EQ_Adress from EQCin_Cinema     where  EQ_CinemaCode<>'' ";
+//            string sql2 = @"select a.SystemNum,a.EQ_CinemaName,a.EQ_GroupName,a.EQ_CityCode,a.EQ_ForAddress,a.ReEQ_CinemaCode as EQ_CinemaCode
+//  from  [test].[dbo].[EQCin_ForwardInfo20190215] a inner join [test].[dbo].EQCin_ForwardInfo20190222 b on b.SystemNum=a.SystemNum where a.ReEQ_CinemaCode is not null  ";
+            string sql1 = @"SELECT [专资编码] as EQ_CinemaCode
+      ,[影院名称] as Forward_CinemaName
+      ,[硬盘接收地址] as Forward_Adress
+      ,[专资编码] as EQ_CinemaCode
+      ,[标准影院名称] as EQ_CinemaName
+      ,[专资影院名称] as EQ_ZZCinemaName
+      ,[平台应原地址] as EQ_Adress
+FROM [test].[dbo].[Sheet4$] a
+  inner join [HyFilmCopyForZyNew].[dbo].[EQCin_Cinema] b on a.[专资编码]=b.[EQ_CinemaCode]
+  where   a.[专资编码] is not  null and b.[EQ_CinemaCode] is not null 
+  and a.[专资编码]  not in ('院线影管','转万达','不是奥斯卡','不是时代院线','机动硬盘') and a.[专资编码] <>''  and a.[发运方式] is null and a.[地址相似度] is  null ";
 
             var dt = GetDataTableBySql(sql1);
 
-            var eQCin_Cinemas = DataTableSerializer.ToList<EQCin_Cinema>(dt);
-            dt = GetDataTableBySql(sql2);
-            var eQCin_ForwardInfos = DataTableSerializer.ToList<EQCin_ForwardInfo>(dt);
+            var eQCin_Cinemas = DataTableSerializer.ToList<Forward_Cinema>(dt);
+            //dt = GetDataTableBySql(sql2);
+            //var eQCin_ForwardInfos = DataTableSerializer.ToList<EQCin_ForwardInfo>(dt);
 
             var x = 0;
             Console.WriteLine(DateTime.Now.ToLongTimeString());
@@ -37,11 +49,12 @@ namespace StringMatchFunction
             string matchType = "";
             float maxRate2;
             float tempRate2;
+            float tempRate3;
             string EQ_CinemaCode2;
             string matchType2 = "";
-            string remark="";
+            string remark = "";
             string remark2 = "";
-            for (var i = 0; i < eQCin_ForwardInfos.Count; i++)
+            for (var i = 0; i < eQCin_Cinemas.Count; i++)
             {
                 tempRate = 0;
                 maxRate = 0;
@@ -49,41 +62,18 @@ namespace StringMatchFunction
                 tempRate2 = 0;
                 maxRate2 = 0;
                 EQ_CinemaCode2 = "";
-                 remark="";
-                 remark2 = "";
-                //var option = new MatchResult();
-                for (var j = 0; j < eQCin_Cinemas.Count; j++)
+                remark = "";
+                remark2 = "";
+                tempRate3 = 0;
+                //EQCin_Cinema eq = eQCin_Cinemas.Where(re => re.EQ_CinemaCode == eQCin_ForwardInfos[i].EQ_CinemaCode).FirstOrDefault();
+                //if (eq == null) continue;
+                tempRate = levenshtein(eQCin_Cinemas[i].EQ_Adress, eQCin_Cinemas[i].Forward_Adress);
+                tempRate2 = levenshtein(eQCin_Cinemas[i].EQ_CinemaName, eQCin_Cinemas[i].Forward_CinemaName);
+                if (eQCin_Cinemas[i].EQ_ZZCinemaName != null)
                 {
-                    tempRate = levenshtein(eQCin_Cinemas[j].EQ_Adress, eQCin_ForwardInfos[i].EQ_ForAddress);
-                    tempRate2 = levenshtein(eQCin_Cinemas[j].EQ_CinemaName, eQCin_ForwardInfos[i].EQ_CinemaName);
-                    if (tempRate > maxRate)
-                    {
-                        maxRate = tempRate;
-                        EQ_CinemaCode = eQCin_Cinemas[j].EQ_CinemaCode;
-                        matchType = "EQ_Adress";
-                        remark = (tempRate2*100).ToString();
-                        //sysnum = eQCin_ForwardInfos[j].SystemNum;
-                    }
-                    
-                    if (tempRate2 > maxRate2)
-                    {
-                        maxRate2 = tempRate2;
-                        EQ_CinemaCode2 = eQCin_Cinemas[j].EQ_CinemaCode;
-                        matchType2 = "EQ_CinemaName";
-                        remark2 = (tempRate*100).ToString();
-                        //sysnum = eQCin_ForwardInfos[j].SystemNum;
-                    }
+                    tempRate3 = levenshtein(eQCin_Cinemas[i].EQ_ZZCinemaName, eQCin_Cinemas[i].Forward_CinemaName);
                 }
-                if (maxRate > 0)
-                {
-                    InsertCinameMatchInfoBySql("insert into CinameMatchInfo20150529 values(" + eQCin_ForwardInfos[i].SystemNum + ",'" + EQ_CinemaCode + "','','','" + remark + "',2,1,'EQ_Adress','" + maxRate + "')");
-                    //Console.WriteLine(eQCin_Cinemas[i].EQ_CinemaCode + " : " + sysnum + " ,相似度最高" + maxRate);
-                }
-                if (maxRate2 > 0)
-                {
-                    InsertCinameMatchInfoBySql("insert into CinameMatchInfo20150529 values(" + eQCin_ForwardInfos[i].SystemNum + ",'" + EQ_CinemaCode2 + "','','','" + remark2 + "',3,1,'EQ_CinemaName','" + maxRate2 + "')");
-                    //Console.WriteLine(eQCin_Cinemas[i].EQ_CinemaCode + " : " + sysnum + " ,相似度最高" + maxRate);
-                }
+                InsertCinameMatchInfoBySql("update [test].[dbo].[Sheet4$]  set [标准影院名称相似度]=" + tempRate2 + ",[专资影院名称相似度]=" + tempRate3 + ",[地址相似度]=" + tempRate + " where [专资编码]='" + eQCin_Cinemas[i].EQ_CinemaCode + "' and [发运方式] is null");
                 //reslut.Add(option);
             }
             Console.WriteLine(DateTime.Now.ToLongTimeString());
@@ -105,7 +95,7 @@ namespace StringMatchFunction
         public static DataTable GetDataTableBySql(string sql)
         {
             DataSet ds = new DataSet();
-            string conStr = "Data Source=192.168.144.73;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=Welcome1;";
+            string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             SqlConnection con = new SqlConnection(conStr);
             SqlCommand cmd = new SqlCommand(sql, con);
             SqlDataAdapter da = new SqlDataAdapter(cmd);
@@ -116,7 +106,7 @@ namespace StringMatchFunction
         public static void InsertCinameMatchInfoBySql(string sql)
         {
             DataSet ds = new DataSet();
-            string conStr = "Data Source=192.168.144.73;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=Welcome1;";
+            string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             using (SqlConnection con = new SqlConnection(conStr))
             {
                 con.Open();

@@ -20,7 +20,7 @@ namespace StringMatchFunction
         static bool isExportAllFenduan=false;
         static string feemonth = "201807";
         static string theatrecode= "";
-        static void Main(string[] args)
+        static void Maina(string[] args)
         {
             if (DateTime.Now.Year != 2018 && DateTime.Now.Month != 7) {
                 return;

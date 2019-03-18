@@ -10,10 +10,10 @@ using System.Data.SqlClient;
 
 namespace ExcelExportFilmNo
 {
-    class Program
+    class Program5
     {
         static string status = "Test";
-        static void Maina(string[] args)
+        static void Mainaa(string[] args)
         {
             string ff = @"D:\0603\" + status;
             RegisterLicense();

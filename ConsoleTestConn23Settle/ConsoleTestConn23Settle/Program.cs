@@ -19,15 +19,20 @@ namespace ConsoleTestConn23Settle
         static void Main(string[] args)
         {
             string startdate = "2018-07-01";
-            string enddate = "2018-08-01";
+            string enddate = "2018-09-28";
+            /*
             ExecSqlIssue("drop table A_FilmIssue_Issue");
             ExecSqlIssue("truncate table A_FilmIssue_Settle");
             ExecSqlIssue(string.Format(@"select iss.DivideID 一览表ID
 ,iss.SettleID 结算单位ID
 ,sett.SettleName 结算单位名称
+,tag.SectionID 分段ID
 ,fi.filmname 影片名称,jfpv.VersionName 影片版本,pa.FilmNum 影片编码,iss.RationValue 比例值,(case when iss.SettleTypeNo=0 then '自购' else '租赁' end) 比例类型
 ,CONVERT(varchar(10), iss.StartTime, 120) 一览表开始时间,CONVERT(varchar(10), iss.EndTime, 120) 一览表结束时间
-,sum(case when fh.DivideID is null then 0 else 1 end) 特殊设备总数
+,sum(case when fh.DivideID is null then 0 when fh.DelFlag=0 then 1 else 0 end) 特殊设备总数
+,sum(case when fh.DivideID is null then 0 when fh.DelFlag=1 then 1 else 0 end) [特殊设备总数(删除)]
+,(case when iss.AuditState=0 then '通过' when iss.AuditState=1 then '未通过' when iss.AuditState=3 then '未审核' else '' end ) 审核状态
+,(case when iss.HasSend=0 then '不推送' when iss.HasSend=1 then '待推送' when iss.HasSend=2 then '已推送' else '' end ) 是否已经推送
 into A_FilmIssue_Issue
 from JS_IssuedList iss
 inner join JS_Publish_Batch tag  on iss.sectionid=tag.sectionid
@@ -35,11 +40,17 @@ inner join JS_SettleCompany sett on iss.SettleID=sett.SettleID
 inner join Publish_Batch pb on tag.SystemNum=pb.SystemNum
 inner join Film_FilmInfo fi on pb.filmno=fi.filmno
 left join JS_FilmVersion jfpv on iss.Versiontype=jfpv.Versiontype
-left join JS_SpecialValueHall fh on iss.DivideID=fh.DivideID and fh.DelFlag=0
+left join JS_SpecialValueHall fh on iss.DivideID=fh.DivideID  
 left join Publish_FilmPermitAdd pa on pb.filmno=pa.filmno and jfpv.VersionID=pa.VersionID
-where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and   iss.DelFlag=0
-group by iss.DivideID ,iss.SettleID,sett.SettleName ,fi.filmname,jfpv.VersionName,pa.FilmNum,iss.RationValue,iss.SettleTypeNo,iss.StartTime,iss.EndTime
-order by iss.DivideID", startdate, enddate));
+where  tag.EndTime>='{0}'  and tag.StartTime<='{1}' and tag.EndTime<='{2}'  and   iss.DelFlag=0 
+group by iss.DivideID ,iss.AuditState,iss.HasSend,iss.SettleID,sett.SettleName ,tag.SectionID,iss.VersionType
+,iss.SettleType
+,iss.SettleTypeNo
+,iss.PlayRequire
+,iss.PriceRequire
+,iss.OperatorName
+,iss.Remark,fi.filmname,jfpv.VersionName,pa.FilmNum,iss.RationValue,iss.SettleTypeNo,iss.StartTime,iss.EndTime
+order by iss.DivideID", startdate, enddate, enddate));
 
             DataTable settleDetail = GetDataTableBySqlSettle(string.Format(@"select iss.FILMISSUEID ,tag.ISSUESTAGEGUID 分段ID,to_char(iss.createtime,'yyyy-MM-dd') 创建日期,to_char(iss.OPDATE,'yyyy-MM-dd') 修改日期,iss.FILMISSUEGUID 一览表ID
 ,iss.SETTLEMENTGUID 结算单位ID
@@ -55,16 +66,17 @@ left join filmseq seq on iss.filmversiontype=seq.filmversiontype and  iss.filmid
 left join film f on  iss.filmid=f.filmid
 left join FILMVERSION fv on iss.FILMVERSIONTYPE=fv.FILMVERSIONTYPE
 left join FILMISSUE_HALL fh on iss.FILMISSUEID=fh.FILMISSUEID
-where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0 
+where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.playendtime<=to_date('{2}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0 
 group by tag.ISSUESTAGEGUID,iss.createtime,iss.OPDATE,iss.FILMISSUEID,iss.FILMISSUEGUID ,iss.SETTLEMENTGUID,sett.SETTLENAME,sett.SETTLEMODE ,f.filmname,fv.FILMVERSIONNAME,seq.FILMSEQCODE,iss.RATIOVALUE,iss.RATIOTYPE,iss.PLAYSTARTTIME,iss.PLAYENDTIME
-order by iss.FILMISSUEID", startdate, enddate));
+order by iss.FILMISSUEID", startdate, enddate, enddate));
             InsertDatatableIssue(settleDetail, "A_FilmIssue_Settle");
+             */
             List<SheetMap> list = new List<SheetMap>();
             list.Add(new SheetMap()
             {
                 sheetName = "结算 查询分段明细",
                 isExport = true,
-                sql =string.Format(@"SELECT tag.ISSUESTAGEGUID 分段ID
+                sql = string.Format(@"SELECT tag.ISSUESTAGEGUID 分段ID
 ,f.filmname 影片名称,fv.FILMVERSIONNAME 影片版本,seq.FILMSEQCODE 影片编码
 ,to_char(tag.playstarttime,'yyyy-MM-dd') 分段开始时间,to_char(tag.playendtime,'yyyy-MM-dd') 分段结束时间
 FROM issuestage tag
@@ -73,8 +85,8 @@ left join issueversion tag2 on tag1.ISSUEVERSIONTYPE= tag2.issueversiontype
 left join filmseq seq on   tag2.filmversiontype=seq.filmversiontype and  tag.filmid= seq.filmid
 left join film f on f.filmid= tag.filmid
 left join FILMVERSION fv on tag2.FILMVERSIONTYPE=fv.FILMVERSIONTYPE
-where tag.playendtime>=to_date('{0}','yyyy-MM-dd')  and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.deleted=0
-order by tag.ISSUESTAGEGUID", startdate, enddate) 
+where tag.playendtime>=to_date('{0}','yyyy-MM-dd')  and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.playendtime<to_date('{2}','yyyy-MM-dd') and tag.deleted=0
+order by tag.ISSUESTAGEGUID", startdate, enddate, enddate)
             });
             list.Add(new SheetMap()
             {
@@ -90,50 +102,39 @@ inner join JS_FilmVersion jfv on jfpv.VersionType=jfv.VersionType
 inner join Publish_Batch pb on tag.SystemNum=pb.SystemNum
 inner join Film_FilmInfo fi on pb.filmno=fi.filmno
 left join Publish_FilmPermitAdd pa on pb.filmno=pa.filmno and jfv.VersionID=pa.VersionID
-where tag.EndTime>='{0}'  and tag.StartTime<='{1}'", startdate, enddate)
+where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and tag.EndTime<='{2}' ", startdate, enddate, enddate)
             });
             list.Add(new SheetMap()
             {
                 sheetName = "结算 一览表统计",
                 isExport = true,
-                sql =string.Format( @"select count(distinct iss.FILMISSUEID) 一览表总数,count(distinct fh.FILMISSUEID) 特殊一览表总数,count(fh.FILMISSUE_HALLGUID)  特殊设备表总数,count(distinct fh.HALLID) 特殊设备总数
+                sql = string.Format(@"select count(distinct iss.FILMISSUEID) 一览表总数,count(distinct fh.FILMISSUEID) 特殊一览表总数,count(fh.FILMISSUE_HALLGUID)  特殊设备表总数,count(distinct fh.HALLID) 特殊设备总数
 from FILMISSUE iss
 inner join issuestage tag on iss.ISSUESTAGEID=tag.ISSUESTAGEID
 left join filmseq seq on iss.filmversiontype=seq.filmversiontype and  iss.filmid= seq.filmid
 left join film f on  iss.filmid=f.filmid
 left join FILMVERSION fv on iss.FILMVERSIONTYPE=fv.FILMVERSIONTYPE
 left join FILMISSUE_HALL fh on iss.FILMISSUEID=fh.FILMISSUEID
-where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0", startdate, enddate)
+where tag.playendtime>=to_date('{0}','yyyy-MM-dd') and tag.playstarttime<=to_date('{1}','yyyy-MM-dd') and tag.playendtime<=to_date('{2}','yyyy-MM-dd') and tag.deleted=0  and iss.deleted=0", startdate, enddate, enddate)
             });
             list.Add(new SheetMap()
             {
                 sheetName = "发行 一览表统计",
                 isExport = true,
-                sql = string.Format( @"select count(distinct iss.DivideID) 一览表总数,count(distinct fh.DivideID) 特殊一览表总数,count(fh.SpecialHallID)  特殊设备表总数,count(distinct fh.deviceid) 特殊设备总数
+                sql = string.Format(@"select count(distinct iss.DivideID) 一览表总数,count(distinct fh.DivideID) 特殊一览表总数,count(fh.SpecialHallID)  特殊设备表总数,count(distinct fh.deviceid) 特殊设备总数
 from JS_IssuedList iss
 inner join JS_Publish_Batch tag  on iss.sectionid=tag.sectionid
 inner join Publish_Batch pb on tag.SystemNum=pb.SystemNum
 inner join Film_FilmInfo fi on pb.filmno=fi.filmno
 left join JS_FilmVersion jfpv on iss.Versiontype=jfpv.Versiontype
 left join JS_SpecialValueHall fh on iss.DivideID=fh.DivideID
-where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and   iss.DelFlag=0", startdate, enddate)
+where tag.EndTime>='{0}'  and tag.StartTime<='{1}' and tag.EndTime<='{2}' and   iss.DelFlag=0", startdate, enddate, enddate)
             });
-            list.Add(new SheetMap() { sheetName = "结算 7月份一览表明细", isExport = true, sql = @"select * from A_FilmIssue_Settle" });
-            list.Add(new SheetMap() { sheetName = "发行 7月份一览表明细", isExport = true, sql = @"select * from A_FilmIssue_Issue" });
+            list.Add(new SheetMap() { sheetName = "结算 7-10月份一览表明细", isExport = true, sql = @"select * from A_FilmIssue_Settle" });
+            list.Add(new SheetMap() { sheetName = "发行 7-10月份一览表明细", isExport = true, sql = @"select * from A_FilmIssue_Issue" });
             list.Add(new SheetMap()
             {
                 sheetName = "结算平台未被正确标记",
-                isExport = true,
-                sql = @"select b.*,(case when iss.DelFlag is null then '发行未找到' when iss.DelFlag=1 then '发行标记删除' else '发行可用' end) 状态
-from [dbo].[A_FilmIssue_Issue] a
-right join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
-left join JS_IssuedList iss on b.[一览表ID]=iss.DivideID
-where a.[一览表ID] is null
-order by iss.DelFlag"
-            });
-            list.Add(new SheetMap()
-            {
-                sheetName = "",
                 isExport = true,
                 sql = @"select b.*,(case when iss.DelFlag is null then '发行未找到' when iss.DelFlag=1 then '发行标记删除' else '发行可用' end) 状态
 from [dbo].[A_FilmIssue_Issue] a
@@ -155,7 +156,7 @@ where b.[一览表ID] is null"
             {
                 sheetName = "特殊设备数量不匹配",
                 isExport = true,
-                sql = @"select b.*,a.[特殊设备总数]
+                sql = @"select b.*,a.[特殊设备总数] as [特殊设备总数(发行)],a.[审核状态] as [审核状态(发行)],a.[是否已经推送]
 from [dbo].[A_FilmIssue_Issue] a
 inner join [dbo].[A_FilmIssue_Settle] b on a.[一览表ID]=b.[一览表ID]
 where a.[特殊设备总数]<>b.[特殊设备总数]"
@@ -172,10 +173,10 @@ where a.[特殊设备总数]<>b.[特殊设备总数]"
                 switch (item.sheetName)
                 {
                     case "结算 查询分段明细":
-                        dt = GetDataTableBySqlSettle(item.sql);
+                        //dt = GetDataTableBySqlSettle(item.sql);
                         break;
                     case "发行 查询分段明细":
-                        dt = GetDataTableBySqlIssue(item.sql);
+                       // dt = GetDataTableBySqlIssue(item.sql);
                         break;
                     case "结算 一览表统计":
                         dt = GetDataTableBySqlSettle(item.sql);
@@ -183,11 +184,11 @@ where a.[特殊设备总数]<>b.[特殊设备总数]"
                     case "发行 一览表统计":
                         dt = GetDataTableBySqlIssue(item.sql);
                         break;
-                    case "结算 7月份一览表明细":
-                        dt = GetDataTableBySqlIssue(item.sql);
+                    case "结算 7-10月份一览表明细":
+                        //dt = GetDataTableBySqlIssue(item.sql);
                         break;
-                    case "发行 7月份一览表明细":
-                        dt = GetDataTableBySqlIssue(item.sql);
+                    case "发行 7-10月份一览表明细":
+                        //dt = GetDataTableBySqlIssue(item.sql);
                         break;
                     case "结算平台未被正确标记":
                         dt = GetDataTableBySqlIssue(item.sql);
@@ -250,10 +251,11 @@ where a.[特殊设备总数]<>b.[特殊设备总数]"
         public static DataTable GetDataTableBySqlIssue(string sql)
         {
             DataSet ds = new DataSet();
-            //string conStr = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=10.1.31.66)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME = orcl11g)));User Id=settle;Password=settle;";
+            //string conStr = "Data Source=10.1.31.215;Initial Catalog=HyFilmCopyForZyNew20180912;UID=sa;PWD=Welcome1;";
             string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             SqlConnection con = new SqlConnection(conStr);
             SqlCommand cmd = new SqlCommand(sql, con);
+            cmd.CommandTimeout = 1800;
             SqlDataAdapter da = new SqlDataAdapter(cmd);
             da.Fill(ds);
             return ds.Tables[0];
@@ -261,22 +263,27 @@ where a.[特殊设备总数]<>b.[特殊设备总数]"
         }
         public static void ExecSqlIssue(string sql)
         {
+            //string conStr = "Data Source=10.1.31.215;Initial Catalog=HyFilmCopyForZyNew20180912;UID=sa;PWD=Welcome1;";
             string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             using (SqlConnection con = new SqlConnection(conStr))
             {
                 con.Open();
                 SqlCommand cmd = new SqlCommand(sql, con);
+                cmd.CommandTimeout = 1800;
                 cmd.ExecuteNonQuery();
             }
 
         }
-        public static void InsertDatatableIssue(DataTable dt,string tablename)
+        public static void InsertDatatableIssue(DataTable dt, string tablename)
         {
             DataSet ds = new DataSet();
+            //string conStr = "Data Source=10.1.31.215;Initial Catalog=HyFilmCopyForZyNew20180912;UID=sa;PWD=Welcome1;";
             string conStr = "Data Source=10.10.10.80,2433;Initial Catalog=HyFilmCopyForZyNew;UID=sa;PWD=hyby@123;";
             using (SqlConnection con = new SqlConnection(conStr))
             {
                 SqlBulkCopy bulkCopy = new SqlBulkCopy(con);
+                bulkCopy.BatchSize = 1000000;
+                bulkCopy.BulkCopyTimeout = 1800;
                 bulkCopy.DestinationTableName = tablename;
                 bulkCopy.BatchSize = dt.Rows.Count;
                 for (int i = 0; i < dt.Columns.Count; i++)

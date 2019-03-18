@@ -52,6 +52,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExportData2019.cs" />
+    <Compile Include="Forward_Cinema.cs" />
     <Compile Include="MonthTicketCinemaDetail.cs" />
     <Compile Include="MonthTicketTheartDetail.cs" />
     <Compile Include="OracleDBHelper.cs" />
